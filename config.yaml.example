@@ -1,0 +1,21 @@
+twitter:
+  consumer_key: 'aaa'
+  consumer_secret: 'bbb'
+  access_key: 'ccc'
+  access_secret: 'ddd'
+
+  follow:
+    - user: 'BVG_Ubahn'
+      id: '234688983'
+    - user: 'BVG_Tram'
+      id: '232867314'
+    - user: 'BVG_Bus'
+      id: '234689386'
+    - user: 'SBahnBerlin'
+      id: '166866601'
+
+telegram:
+  # bot token
+  token: 'aaa'
+  # target channel for updates
+  channel: -100123456789
