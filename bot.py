@@ -26,6 +26,10 @@ FOLLOW_ACCOUNTS = dict()
 for account in cfg['twitter']['follow']:
     FOLLOW_ACCOUNTS[account['user']] = account['id']
 
+REPLACEMENTS = dict()
+for replacement in cfg['twitter']['replacements']:
+    REPLACEMENTS[replacement['source']] = replacement['target']
+
 auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
 auth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
 api = tweepy.API(auth)
@@ -43,7 +47,7 @@ class StdOutListener(StreamListener):
             author_name = status.author.name
             author_user = status.author.screen_name
             tweet_id = status.id
-            if status.truncated == True:
+            if status.truncated:
                 message = status.extended_tweet['full_text']
             else:
                 message = status.text
@@ -81,6 +85,8 @@ class StdOutListener(StreamListener):
 
 
 def send_message(text):
+    for source, target in REPLACEMENTS.items():
+        text = text.replace(source, target)
     logger.info("Sending: %s" % text)
     try:
         bot.send_message(chat_id=TG_CHANNEL, text=text, parse_mode=ParseMode.MARKDOWN,
