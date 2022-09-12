@@ -1,5 +1,5 @@
-from tweepy import StreamListener
 from tweepy import Stream
+from tweepy.errors import TweepyException
 import tweepy
 from telegram import Bot
 from telegram import ParseMode
@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 with open('config.yaml', 'r') as cfgfile:
-    cfg = yaml.load(cfgfile)
+    cfg = yaml.safe_load(cfgfile)
 
 TWITTER_CONSUMER_KEY = cfg['twitter']['consumer_key']
 TWITTER_CONSUMER_SECRET = cfg['twitter']['consumer_secret']
@@ -30,12 +30,8 @@ REPLACEMENTS = dict()
 for replacement in cfg['twitter']['replacements']:
     REPLACEMENTS[replacement['source']] = replacement['target']
 
-auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
-auth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
-api = tweepy.API(auth)
 
-
-class StdOutListener(StreamListener):
+class StdOutListener(Stream):
     def on_connect(self):
         logger.info("Connection successful")
         return
@@ -52,13 +48,17 @@ class StdOutListener(StreamListener):
             else:
                 message = status.text
             if status.in_reply_to_status_id is not None:
-                replied_to = api.get_status(id=status.in_reply_to_status_id)
+                try:
+                    replied_to = api.get_status(id=status.in_reply_to_status_id)
+                except TweepyException:
+                    logger.info("Message could not be received, skipping...")
+                    return
                 send_message(
                     "*{replied_to_author_name}* ([@{replied_to_author_user}]"
                     "(https://twitter.com/{replied_to_author_user})):\n{replied_to_message}\n"
                     "*{author_name}* "
                     "([@{author_user}](https://twitter.com/{author_user})):\n{message}\n"
-                    "[Original Tweet](https://twitter.com/statuses/{tweet_id})".format(
+                    "[Original Tweet](https://twitter.com/{author_user}/status/{tweet_id})".format(
                         tweet_id=tweet_id,
                         replied_to_author_name=escape_markdown(replied_to.author.name),
                         replied_to_author_user=replied_to.author.screen_name,
@@ -70,7 +70,7 @@ class StdOutListener(StreamListener):
                 send_message(
                     "*{author_name}* "
                     "([@{author_user}](https://twitter.com/{author_user})):\n{message}\n"
-                    "[Original Tweet](https://twitter.com/statuses/{tweet_id})".format(
+                    "[Original Tweet](https://twitter.com/{author_user}/status/{tweet_id})".format(
                         tweet_id=tweet_id,
                         author_name=escape_markdown(author_name),
                         author_user=author_user,
@@ -107,8 +107,7 @@ if __name__ == '__main__':
     logger.info("Connecting to Telegram API")
     bot = Bot(token=TG_TOKEN)
     logger.info("Registering Twitter listener")
-    listener = StdOutListener()
-    twitterStream = Stream(auth, listener)
+    twitterStream = StdOutListener(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
 
     follow = list()
     for id in FOLLOW_ACCOUNTS.values():
