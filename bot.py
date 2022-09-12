@@ -30,6 +30,10 @@ REPLACEMENTS = dict()
 for replacement in cfg['twitter']['replacements']:
     REPLACEMENTS[replacement['source']] = replacement['target']
 
+auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+auth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
+api = tweepy.API(auth)
+
 
 class StdOutListener(Stream):
     def on_connect(self):
