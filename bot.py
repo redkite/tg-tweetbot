@@ -1,3 +1,4 @@
+from emoji import emojize
 from tweepy import Stream
 from tweepy.errors import TweepyException
 import tweepy
@@ -22,17 +23,25 @@ TWITTER_ACCESS_SECRET = cfg['twitter']['access_secret']
 TG_TOKEN = cfg['telegram']['token']
 TG_CHANNEL = cfg['telegram']['channel']
 
+auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+auth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
+api = tweepy.API(auth)
+
+class Account():
+    
+    def __init__(self, name, user_id, emoji=''):
+        self.name = name
+        self.id = user_id
+        self.emoji = emoji
+
+
 FOLLOW_ACCOUNTS = dict()
 for account in cfg['twitter']['follow']:
-    FOLLOW_ACCOUNTS[account['user']] = account['id']
+    FOLLOW_ACCOUNTS[account['user']] = Account(account['user'], account['id'], account['emoji'])
 
 REPLACEMENTS = dict()
 for replacement in cfg['twitter']['replacements']:
     REPLACEMENTS[replacement['source']] = replacement['target']
-
-auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
-auth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
-api = tweepy.API(auth)
 
 
 class StdOutListener(Stream):
@@ -60,22 +69,24 @@ class StdOutListener(Stream):
                 send_message(
                     "*{replied_to_author_name}* ([@{replied_to_author_user}]"
                     "(https://twitter.com/{replied_to_author_user})):\n{replied_to_message}\n"
-                    "*{author_name}* "
+                    "{emoji} *{author_name}* "
                     "([@{author_user}](https://twitter.com/{author_user})):\n{message}\n"
                     "[Original Tweet](https://twitter.com/{author_user}/status/{tweet_id})".format(
                         tweet_id=tweet_id,
                         replied_to_author_name=escape_markdown(replied_to.author.name),
                         replied_to_author_user=replied_to.author.screen_name,
                         replied_to_message=escape_markdown(replied_to.text),
+                        emoji=emojize(f':{FOLLOW_ACCOUNTS[status.author.screen_name].emoji}:'),
                         author_name=escape_markdown(author_name),
                         author_user=author_user,
                         message=escape_markdown(message)))
             else:
                 send_message(
-                    "*{author_name}* "
+                    "{emoji} *{author_name}* "
                     "([@{author_user}](https://twitter.com/{author_user})):\n{message}\n"
                     "[Original Tweet](https://twitter.com/{author_user}/status/{tweet_id})".format(
                         tweet_id=tweet_id,
+                        emoji=emojize(f':{FOLLOW_ACCOUNTS[status.author.screen_name].emoji}:'),
                         author_name=escape_markdown(author_name),
                         author_user=author_user,
                         message=escape_markdown(message)))
@@ -114,6 +125,6 @@ if __name__ == '__main__':
     twitterStream = StdOutListener(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
 
     follow = list()
-    for id in FOLLOW_ACCOUNTS.values():
-        follow.append(id)
+    for account in FOLLOW_ACCOUNTS.values():
+        follow.append(account.id)
     twitterStream.filter(follow=follow)

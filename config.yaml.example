@@ -7,12 +7,16 @@ twitter:
   follow:
     - user: 'BVG_Ubahn'
       id: '234688983'
+      emoji: 'metro'
     - user: 'BVG_Tram'
       id: '232867314'
+      emoji: 'tram'
     - user: 'BVG_Bus'
       id: '234689386'
+      emoji: 'oncoming_bus'
     - user: 'SBahnBerlin'
       id: '166866601'
+      emoji: 'light_rail'
 
   replacements:
     - source: '&gt;'
